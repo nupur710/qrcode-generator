@@ -47,19 +47,25 @@ class Encoder:
         #encoding to shift jis is successfull but we need to make sure the string consists of characters that
         #are in double byte range of shift jis
         byte_arr= bytearray(jis_encoded)
-        for i in range(len(byte_arr)):
+        i= 0
+        while i < len(byte_arr):
             if byte_arr[i] >= 0x80: #if current byte is in the first byte range of double-byte characters
                 if i+1 < len(byte_arr): #there is another byte
                     first_byte= byte_arr[i]
                     second_byte= byte_arr[i+1]
                     #check first_byte and second_byte are in valid ranges
-                    if((first_byte in range(0x81, 0xA0) or first_byte in range(0xE0, 0xF0)) and second_byte
-                       in range(0xE0, 0xF0)):
-                        i+= 1 #in range of double-byte character; skip to next byte
+                    if(0x81 <= first_byte <= 0x9F or 0xE0 <= first_byte <= 0xEF):
+                        if((first_byte % 2 != 0 and 0x40 <= second_byte <= 0x9E and second_byte != 0x7f)
+                           or (first_byte % 2 == 0 and 0x9F <= second_byte <= 0xFC)):
+                            i+= 2 #in range of double-byte character; skip to next pair
+                        else:
+                            return False
                     else:
                         return False
                 else:
                     return False
+            else:
+                return False
         return True
     
 
@@ -70,7 +76,13 @@ class Encoder:
     def alphanum_encoding(self, text):
         print("intput data will have alphanumeric encoding ")
 
+    def byte_encoding(self, text):
+        print("input data will have byte encoding")
+
+    def kanji_encoding(self, text):
+        print("input data will have kanji encoding")
+
 
 t= Encoder()
-print(t.encode("漢"))
+print(t.encode("髜魵魲鮏鮱鮻鰀鵰鵫鶴鸙黑"))
             
