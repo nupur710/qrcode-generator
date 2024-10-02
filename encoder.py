@@ -38,37 +38,21 @@ class Encoder:
             return False
         
     #encode string in shift jist & then determine byte ranges
+    
     def is_doubleByteJIS(self, string):
         try:
-            jis_encoded= string.encode('shift_jis')
-            print(jis_encoded)
-        except UnicodeError:
+            jis_encoded = string.encode('shift_jis')
+        except UnicodeEncodeError:
             return False
-        #encoding to shift jis is successfull but we need to make sure the string consists of characters that
-        #are in double byte range of shift jis
-        byte_arr= bytearray(jis_encoded)
-        i= 0
-        while i < len(byte_arr):
-            if byte_arr[i] >= 0x80: #if current byte is in the first byte range of double-byte characters
-                if i+1 < len(byte_arr): #there is another byte
-                    first_byte= byte_arr[i]
-                    second_byte= byte_arr[i+1]
-                    #check first_byte and second_byte are in valid ranges
-                    if(0x81 <= first_byte <= 0x9F or 0xE0 <= first_byte <= 0xEF):
-                        if((first_byte % 2 != 0 and 0x40 <= second_byte <= 0x9E and second_byte != 0x7f)
-                           or (first_byte % 2 == 0 and 0x9F <= second_byte <= 0xFC)):
-                            i+= 2 #in range of double-byte character; skip to next pair
-                        else:
-                            return False
-                    else:
-                        return False
-                else:
-                    return False
-            else:
+        if len(jis_encoded) % 2 != 0:  # if odd no. of bytes, not double-byte character
+            return False
+        for i in range(0, len(jis_encoded), 2):
+            first_byte = jis_encoded[i]
+            second_byte = jis_encoded[i+1]
+            if not ((0x81 <= first_byte <= 0x9F or 0xE0 <= first_byte <= 0xFC) and
+                (0x40 <= second_byte <= 0x7E or 0x80 <= second_byte <= 0xFC)):
                 return False
         return True
-    
-
             
     def numberic_encoding(self, text):
         print("input data will have numeric encoding")
@@ -84,5 +68,5 @@ class Encoder:
 
 
 t= Encoder()
-print(t.encode("髜魵魲鮏鮱鮻鰀鵰鵫鶴鸙黑"))
+print(t.encode("日本"))
             
