@@ -1,8 +1,6 @@
-from encoder import Encoder
-
 class VersionSelector:
     def __init__(self):
-        self.encoder= Encoder()
+        pass
 
     #using error correction level M. Max capacity of input chars allowed for numeric, alphanumeric
     #byte, kanji modes for 40 versions of QR codes
@@ -54,9 +52,8 @@ class VersionSelector:
                 return k
         return None
 
-    def smallest_version(self, text):
+    def smallest_version(self, text, encoding_mode):
         version= None
-        encoding_mode= self.encoder.determine_encoding(text)
         num_chars= len(text)
         if encoding_mode== 'NUMERIC': version= self.get_versions_info(num_chars, 0)
         elif encoding_mode== 'ALPHANUMERIC': version= self.get_versions_info(num_chars, 1)
@@ -64,8 +61,7 @@ class VersionSelector:
         elif encoding_mode== 'KANJI': version= self.get_versions_info(num_chars, 3)    
         # raise ValueError("Input is too long for available versions")
         return version
-        
 
-selector= VersionSelector()
-version= selector.smallest_version('日本')  
-print(f"using version {version}")  
+# selector= VersionSelector()
+# version= selector.smallest_version('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam ut magna sem. Cras eget dapibus est. Praesent nisl augue, molestie in rhoncus ut, consectetur et massa. Maecenas a laoreet libero. Sed pulvinar, tellus et fermentum lacinia, nisl eros rhoncus ipsum, eu suscipit turpis ante eu mi.')  
+# print(f"using version {version}")  

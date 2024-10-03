@@ -1,6 +1,15 @@
+from versionselector import VersionSelector
+
 class Encoder:
     def __init__(self):
+        self.version= VersionSelector()
         self.alphanum= set('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./():')
+        self.mode_indicators= {
+            "NUMERIC": "0001",
+            "ALPHANUMERIC": "0010",
+            "BYTE": "0100",
+            "KANJI": "1000"
+        }
 
     def determine_encoding(self, text):
         isByteEncode= self.is_iso8859_1(text)
@@ -19,14 +28,17 @@ class Encoder:
 
     def encode(self, text):
         encoding= self.determine_encoding(text)
+        mode_indicator= self.mode_indicators[encoding]
+        char_count_indicator= self.get_char_count_indicator(text)
+        encoded_data= mode_indicator + char_count_indicator
         if (encoding=="NUMERIC"):
-            return self.numberic_encoding(text)
+            return encoded_data
         elif (encoding=="ALPHANUMERIC"):
-            return self.alphanum_encoding(text)
+            return encoded_data 
         elif (encoding== "BYTE"):
-            return self.byte_encoding(text)
+            return encoded_data 
         elif (encoding== "KANJI"):
-            return self.kanji_encoding(text)
+            return encoded_data 
         
 
     def is_iso8859_1(self, string):
@@ -38,7 +50,6 @@ class Encoder:
             return False
         
     #encode string in shift jist & then determine byte ranges
-    
     def is_doubleByteJIS(self, string):
         try:
             jis_encoded = string.encode('shift_jis')
@@ -53,20 +64,58 @@ class Encoder:
                 (0x40 <= second_byte <= 0x7E or 0x80 <= second_byte <= 0xFC)):
                 return False
         return True
+    
+        
+    def get_char_count_indicator(self, text):
+        numchars= len(text)
+        encoding_mode= self.determine_encoding(text)
+        version= self.version.smallest_version(text, encoding_mode)
+        bits= None
+        if encoding_mode== "NUMERIC":
+            if version <= 9:
+                bits= 10
+            elif 10 <= version <= 26:
+                bits= 12
+            elif 27 <= version <= 40:
+                bits= 14
+        elif encoding_mode== "ALPHANUMERIC":
+            if version <= 9:
+                bits= 9
+            elif 10 <= version <= 26:
+                bits= 11
+            elif 27 <= version <= 40:
+                bits= 13
+        elif encoding_mode== "BYTE":
+            if version <= 9:
+                bits= 8
+            else:
+                bits= 16
+        elif encoding_mode== "KANJI":
+            if version <= 9:
+                bits= 8
+            elif 10 <= version <= 26:
+                bits= 10
+            elif 27 <= version <= 40:
+                bits= 12
+
+        return format(numchars, f'0{bits}b')
+
+        
             
-    def numberic_encoding(self, text):
-        print("input data will have numeric encoding")
+    # def numberic_encoding(self, text):
+    #     print("input data will have numeric encoding")
 
-    def alphanum_encoding(self, text):
-        print("intput data will have alphanumeric encoding ")
+    # def alphanum_encoding(self, text):
+    #     print("intput data will have alphanumeric encoding ")
 
-    def byte_encoding(self, text):
-        print("input data will have byte encoding")
+    # def byte_encoding(self, text):
+    #     print("input data will have byte encoding")
 
-    def kanji_encoding(self, text):
-        print("input data will have kanji encoding")
+    # def kanji_encoding(self, text):
+    #     print("input data will have kanji encoding")
 
 
 t= Encoder()
-print(t.encode("日本"))
+print(t.encode("hello world"))
+
             
