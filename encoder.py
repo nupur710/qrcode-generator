@@ -100,6 +100,20 @@ class Encoder:
 
         return format(numchars, f'0{bits}b')
 
+
+    def numeric_encoding(self, text) :
+        list= []
+        result= []
+        i= 0
+        while i < (len(text)):
+            t= text[i:i+3]
+            i += 3
+            list.append(t)
+        j= 0
+        for group in list:
+            binary = bin(int(group))[2:]
+            result.append(binary)
+        return ''.join(result)
         
             
     # def numberic_encoding(self, text):
@@ -116,6 +130,7 @@ class Encoder:
 
 
 t= Encoder()
-print(t.encode("hello world"))
+# print(t.encode("hello world"))
+print(t.numeric_encoding('8675309'))
 
             
