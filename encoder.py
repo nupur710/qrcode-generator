@@ -11,6 +11,15 @@ class Encoder:
             "KANJI": "1000"
         }
 
+        self.alphanumeric_values = {
+    "0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9,
+    "A": 10, "B": 11, "C": 12, "D": 13, "E": 14, "F": 15, "G": 16, "H": 17, "I": 18,
+    "J": 19, "K": 20, "L": 21, "M": 22, "N": 23, "O": 24, "P": 25, "Q": 26, "R": 27,
+    "S": 28, "T": 29, "U": 30, "V": 31, "W": 32, "X": 33, "Y": 34, "Z": 35, " ": 36,
+    "$": 37, "%": 38, "*": 39, "+": 40, "-": 41, ".": 42, "/": 43, ":": 44
+}
+
+
     def determine_encoding(self, text):
         isByteEncode= self.is_iso8859_1(text)
         isDoubleByteJIS= self.is_doubleByteJIS(text)
@@ -30,7 +39,7 @@ class Encoder:
         encoding= self.determine_encoding(text)
         mode_indicator= self.mode_indicators[encoding]
         char_count_indicator= self.get_char_count_indicator(text)
-        encoded_data= mode_indicator + char_count_indicator
+        encoded_data= mode_indicator + char_count_indicator + self.__get_encoded_data__(text)
         if (encoding=="NUMERIC"):
             return encoded_data
         elif (encoding=="ALPHANUMERIC"):
@@ -99,6 +108,12 @@ class Encoder:
                 bits= 12
 
         return format(numchars, f'0{bits}b')
+    
+    def __get_encoded_data__(self, encoding, text):
+        if encoding== "NUMERIC": return self.numeric_encoding(text)
+        elif encoding== "ALPHANUMERIC": return self.alphanumeric_encoding(text)
+        elif encoding== "BYTE": return self.byte_encoding(text)
+        elif encoding== "KANJI": return self.kanji_encoding(text)
 
 
     def numeric_encoding(self, text) :
@@ -109,28 +124,60 @@ class Encoder:
             t= text[i:i+3]
             i += 3
             list.append(t)
-        j= 0
         for group in list:
             binary = bin(int(group))[2:]
             result.append(binary)
         return ''.join(result)
-        
-            
-    # def numberic_encoding(self, text):
-    #     print("input data will have numeric encoding")
+    
+    def alphanumeric_encoding(self, text):
+        list= []
+        i= 0
+        result= ""
+        while i < (len(text)):
+            t= text[i:i+2]
+            i+= 2
+            list.append(t)
+        for group in list:
+            if len(group)== 2:
+                c1= group[0]
+                c2= group[1]
+                sum= (self.alphanumeric_values[c1] * 45) + self.alphanumeric_values[c2]
+                b= format(sum, '011b')
+            else:
+                c = group[0]
+                sum = self.alphanumeric_values[c]
+                b = format(sum, '06b')
+                result += b
+        return result
+    
+    def byte_encoding(self, text):
+        try:
+            byte_encoded= text.encode('iso-8859-1')
+        except UnicodeError:
+            byte_encoded= text.encode('utf-8')
 
-    # def alphanum_encoding(self, text):
-    #     print("intput data will have alphanumeric encoding ")
-
-    # def byte_encoding(self, text):
-    #     print("input data will have byte encoding")
-
-    # def kanji_encoding(self, text):
-    #     print("input data will have kanji encoding")
+        binary_str= ""
+        for byte in byte_encoded:
+            binary_str += format(byte, '08b')
+        return binary_str
+    
+    def kanji_encoding(self, text):
+        kanji_encoded= text.encode('shift_jis')
+        result= ""
+        for i in range(0, len(kanji_encoded), 2):
+            byte = (kanji_encoded[i] << 8) | kanji_encoded[i + 1]
+            if 0x8140 <= byte <= 0x9FFC:
+                h= byte - 0x8140
+                res= (((h>>8) & 0xFF) * 0xC0)  + (h & 0xFF) #msb= (h>>8) & 0xFF; lsb= h & 0xFF 
+                res_b= format(res, '013b')
+            elif 0xE040 <= byte <= 0xEBBF:
+                h= byte - 0xC140
+                res= (((h>>8) & 0xFF) * 0xC0)  + (h & 0xFF)
+                res_b= format(res, '013b')
+            result += res_b
+        return result
 
 
 t= Encoder()
 # print(t.encode("hello world"))
-print(t.numeric_encoding('8675309'))
-
-            
+print(t.kanji_encoding('茗荷'))

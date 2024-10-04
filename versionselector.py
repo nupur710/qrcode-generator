@@ -61,7 +61,3 @@ class VersionSelector:
         elif encoding_mode== 'KANJI': version= self.get_versions_info(num_chars, 3)    
         # raise ValueError("Input is too long for available versions")
         return version
-
-# selector= VersionSelector()
-# version= selector.smallest_version('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam ut magna sem. Cras eget dapibus est. Praesent nisl augue, molestie in rhoncus ut, consectetur et massa. Maecenas a laoreet libero. Sed pulvinar, tellus et fermentum lacinia, nisl eros rhoncus ipsum, eu suscipit turpis ante eu mi.')  
-# print(f"using version {version}")  
