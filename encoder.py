@@ -147,7 +147,7 @@ class Encoder:
                 c = group[0]
                 sum = self.alphanumeric_values[c]
                 b = format(sum, '06b')
-                result += b
+            result += b
         return result
     
     def byte_encoding(self, text):
@@ -179,5 +179,6 @@ class Encoder:
 
 
 t= Encoder()
-print(t.encode("hello world"))
+print(t.alphanumeric_encoding("HELLO WORLD"))
+print(t.encode("HELLO WORLD"))
 # print(t.kanji_encoding('茗荷'))
