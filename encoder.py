@@ -39,7 +39,7 @@ class Encoder:
         encoding= self.determine_encoding(text)
         mode_indicator= self.mode_indicators[encoding]
         char_count_indicator= self.get_char_count_indicator(text)
-        encoded_data= mode_indicator + char_count_indicator + self.__get_encoded_data__(text)
+        encoded_data= mode_indicator + char_count_indicator + self.__get_encoded_data__(encoding, text)
         if (encoding=="NUMERIC"):
             return encoded_data
         elif (encoding=="ALPHANUMERIC"):
@@ -179,5 +179,5 @@ class Encoder:
 
 
 t= Encoder()
-# print(t.encode("hello world"))
-print(t.kanji_encoding('茗荷'))
+print(t.encode("hello world"))
+# print(t.kanji_encoding('茗荷'))
