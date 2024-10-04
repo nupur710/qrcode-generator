@@ -18,6 +18,18 @@ class Encoder:
     "S": 28, "T": 29, "U": 30, "V": 31, "W": 32, "X": 33, "Y": 34, "Z": 35, " ": 36,
     "$": 37, "%": 38, "*": 39, "+": 40, "-": 41, ".": 42, "/": 43, ":": 44
 }
+        self.m_error_correction_words = {
+    1: 16, 2: 28, 3: 44, 4: 64, 5: 86,
+    6: 108, 7: 124, 8: 154, 9: 182, 10: 216,
+    11: 254, 12: 290, 13: 334, 14: 365, 15: 415,
+    16: 453, 17: 507, 18: 563, 19: 627, 20: 669,
+    21: 714, 22: 782, 23: 860, 24: 914, 25: 1000,
+    26: 1062, 27: 1128, 28: 1193, 29: 267, 30: 1373,
+    31: 1455, 32: 1541, 33: 1631, 34: 1725, 35: 1812,
+    36: 1914, 37: 1992, 38: 2102, 39: 2216, 40: 2334
+}
+
+        
 
 
     def determine_encoding(self, text):
@@ -38,16 +50,20 @@ class Encoder:
     def encode(self, text):
         encoding= self.determine_encoding(text)
         mode_indicator= self.mode_indicators[encoding]
-        char_count_indicator= self.get_char_count_indicator(text)
+        char_count_indicator, version= self.get_char_count_indicator(text)
         encoded_data= mode_indicator + char_count_indicator + self.__get_encoded_data__(encoding, text)
-        if (encoding=="NUMERIC"):
-            return encoded_data
-        elif (encoding=="ALPHANUMERIC"):
-            return encoded_data 
-        elif (encoding== "BYTE"):
-            return encoded_data 
-        elif (encoding== "KANJI"):
-            return encoded_data 
+        padding_1= self.terminator_padding(version, encoded_data)
+        padding_2= self.pad_to_multiples_of_8(padding_1)
+        padding_fin= self.add_236_and_17(padding_2, version)
+        return padding_fin
+        # if (encoding=="NUMERIC"):
+        #     return encoded_data
+        # elif (encoding=="ALPHANUMERIC"):
+        #     return encoded_data 
+        # elif (encoding== "BYTE"):
+        #     return encoded_data 
+        # elif (encoding== "KANJI"):
+        #     return encoded_data 
         
 
     def is_iso8859_1(self, string):
@@ -107,7 +123,7 @@ class Encoder:
             elif 27 <= version <= 40:
                 bits= 12
 
-        return format(numchars, f'0{bits}b')
+        return format(numchars, f'0{bits}b'), version
     
     def __get_encoded_data__(self, encoding, text):
         if encoding== "NUMERIC": return self.numeric_encoding(text)
@@ -115,6 +131,33 @@ class Encoder:
         elif encoding== "BYTE": return self.byte_encoding(text)
         elif encoding== "KANJI": return self.kanji_encoding(text)
 
+    def terminator_padding(self, version, encoded_data):
+        current_bits= len(encoded_data)
+        total_bits= self.m_error_correction_words[version] * 8
+        remainig_bits= total_bits - current_bits
+        if remainig_bits >= 4:
+            encoded_data+= '0000'
+        else:
+            encoded_data += '0' * remainig_bits
+        return encoded_data
+    
+    def pad_to_multiples_of_8(self, encoded_data):
+        while(len(encoded_data) % 8 != 0):
+            encoded_data += '0'
+        return encoded_data
+    
+    def add_236_and_17(self, encoded_data, version):
+        total_bits= self.m_error_correction_words[version] * 8
+        pad_236= '11101100'
+        pad_17= '00010001'
+        pad_flag= True
+        while (len(encoded_data) < total_bits):
+            if pad_flag:
+                encoded_data+= pad_236
+            else:
+                encoded_data+= pad_17
+            pad_flag= False
+        return encoded_data
 
     def numeric_encoding(self, text) :
         list= []
@@ -179,6 +222,5 @@ class Encoder:
 
 
 t= Encoder()
-print(t.alphanumeric_encoding("HELLO WORLD"))
 print(t.encode("HELLO WORLD"))
 # print(t.kanji_encoding('茗荷'))
