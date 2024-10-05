@@ -156,7 +156,7 @@ class Encoder:
                 encoded_data+= pad_236
             else:
                 encoded_data+= pad_17
-            pad_flag= False
+            pad_flag= not pad_flag
         return encoded_data
 
     def numeric_encoding(self, text) :
@@ -221,6 +221,6 @@ class Encoder:
         return result
 
 
-t= Encoder()
-print(t.encode("HELLO WORLD"))
+# t= Encoder()
+# print(t.encode("HELLO WORLD"))
 # print(t.kanji_encoding('茗荷'))
