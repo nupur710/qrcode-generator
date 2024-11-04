@@ -130,7 +130,3 @@ class ErrorCorrection:
         message = self.interleave_blocks(data_blocks, ec_blocks)
         final_message= self.get_final_message(message, version)
         return final_message
-
-    
-e= ErrorCorrection()
-e.generate_error_correction_codewords("HELLO WORLD")

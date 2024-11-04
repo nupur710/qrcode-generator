@@ -1,38 +1,82 @@
-from BitArray2D import BitArray2D
 import numpy as np
 from versionselector import VersionSelector
 from encoder import Encoder
 from errorcorrection import ErrorCorrection
 from PIL import Image
+import sys
 
 class QRCodeGenerator:
     def __init__(self):
         self.version_selector= VersionSelector()
+        self.alignment_pattern_locations= {
+            2:  [18, 6],
+            3:  [22, 6],
+            4:  [26, 6],
+            5:  [30, 6],
+            6:  [34, 6],
+            7:  [38, 22, 6],
+            8:  [42, 24, 6],
+            9:  [46, 26, 6],
+            10: [50, 28, 6],
+            11: [54, 30, 6],
+            12: [58, 32, 6],
+            13: [62, 34, 6],
+            14: [66, 46, 26, 6],
+            15: [70, 48, 26, 6],
+            16: [74, 50, 26, 6],
+            17: [78, 54, 30, 6],
+            18: [82, 56, 30, 6],
+            19: [86, 58, 30, 6],
+            20: [90, 62, 34, 6],
+            21: [94, 72, 50, 28, 6],
+            22: [98, 74, 50, 26, 6],
+            23: [102, 78, 54, 30, 6],
+            24: [106, 80, 54, 28, 6],
+            25: [110, 84, 58, 32, 6],
+            26: [114, 86, 58, 30, 6],
+            27: [118, 90, 62, 34, 6],
+            28: [122, 98, 74, 50, 26, 6],
+            29: [126, 102, 78, 54, 30, 6],
+            30: [130, 104, 78, 52, 26, 6],
+            31: [134, 108, 82, 56, 30, 6],
+            32: [138, 112, 86, 60, 34, 6],
+            33: [142, 114, 86, 58, 30, 6],
+            34: [146, 118, 90, 62, 34, 6],
+            35: [150, 126, 102, 78, 54, 30, 6],
+            36: [154, 128, 102, 76, 50, 24, 6],
+            37: [158, 132, 106, 80, 54, 28, 6],
+            38: [162, 136, 110, 84, 58, 32, 6],
+            39: [166, 138, 110, 82, 54, 26, 6],
+            40: [170, 142, 114, 86, 58, 30, 6]
+        }
 
-    def generate(self, text):
+    def generate(self, text, output_file):
+        print(f'Text: {text}')
         encoder= Encoder()
         error_correction= ErrorCorrection()
+        print(f'Length of text: {len(text)}')
         encoding_mode= encoder.determine_encoding(text)
+        print(f'Encoding mode: {encoding_mode}')
         version= self.version_selector.smallest_version(text, encoding_mode)
+        print(f'Version: {version}')
         final_message= error_correction.generate_error_correction_codewords(text)
         qr_size= 21 + (version-1) * 4 #arithmetic progression
-        #qr_matrix= BitArray2D(rows= qr_size, columns= qr_size)
         qr_matrix = np.zeros((qr_size, qr_size), dtype=int)
         self.place_finder_patterns2(qr_matrix)
-        self.place_alignment_patterns(qr_matrix, version)
+        align_pattern_loc= self.place_alignment_patterns(qr_matrix, version)
         self.place_timing_pattern(qr_matrix)
         self.place_dark_module(qr_matrix, version)
-        self.place_data(qr_matrix, final_message, version)
-        masked_matrix, best_mask= self.apply_best_mask(qr_matrix, version)
+        self.place_data(qr_matrix, final_message, version, align_pattern_loc)
+        masked_matrix, best_mask= self.apply_best_mask(qr_matrix, version, align_pattern_loc)
         format_string= self.generate_format_string(best_mask)
         self.place_format_information(masked_matrix, format_string)
         version_info= self.generate_version_information(version)
         self.place_version_information(masked_matrix, version_info)
         final_qr= self.add_quiet_zone(masked_matrix)
-        self.export_to_png(final_qr, "my_qr.png")
-        print(final_qr)
+        self.export_to_png(final_qr, output_file)
         return final_qr
         
+
     # def place_finder_patterns(self, qr_matrix):
     #     finder_pattern_data = [
     #     [1, 1, 1, 1, 1, 1, 1],
@@ -70,42 +114,44 @@ class QRCodeGenerator:
         qr_matrix[-7:, 0:7] = finder_pattern
 
     def place_alignment_patterns(self, qr_matrix, version):
-        if version== 1: return
-        locations= self.get_alignment_pattern_positions(version)
-        for row in locations:
-            for col in locations:
-                if not self.is_reserved(qr_matrix, row, col):
-                    self.place_alignment_pattern(qr_matrix, row, col)
+        align_loc=[]
+        if version == 1:
+            return
 
-    def is_reserved(self, qr_matrix, row, col):
+        locations = self.alignment_pattern_locations[version]
         size = qr_matrix.shape[0]
-        return ((row < 7 and col < 7) or 
-                (row < 7 and col > size - 8) or 
-                (row > size - 8 and col < 7))
 
-    def place_alignment_pattern(self, qr_matrix, row, col):
-        alignment_pattern = np.array([
-            [1, 1, 1],
-            [1, 0, 1],
-            [1, 1, 1]
-        ])
-        qr_matrix[row:row + 3, col:col + 3] = alignment_pattern
+        for row in locations:
+             for col in locations:
+                # Check if the alignment pattern overlaps with finder patterns or separators
+                if not self.overlaps_finder_pattern(row, col, size):
+                    pos= [row, col]
+                    align_loc.append(pos)
+                    self.place_single_alignment_pattern(qr_matrix, row, col)
 
-    def get_alignment_pattern_positions(verison):
-        step= 2 if verison <= 6 else 4
-        position= []
-        for i in range(verison):
-            pos= 4*i+18
-            if pos not in position:
-                position.append(pos)
-        return position
+        return align_loc
+
+    def overlaps_finder_pattern(self, row, col, size):
+        # Check top-left, top-right, and bottom-left corners
+        return ((row < 8 and col < 8) or
+                (row < 8 and col > size - 9) or
+                (row > size - 9 and col < 8))
+
+    def place_single_alignment_pattern(self, qr_matrix, center_row, center_col):
+        for i in range(-2, 3):
+            for j in range(-2, 3):
+                if abs(i) == 2 or abs(j) == 2 or (i == 0 and j == 0):
+                    qr_matrix[center_row + i, center_col + j] = 1
+                else:
+                    qr_matrix[center_row + i, center_col + j] = 0
+
     
+
     def place_timing_pattern(self, qr_matrix):
         size = qr_matrix.shape[0]
         for i in range(8, size - 8):
             self.set_bit(qr_matrix, 6, i, i % 2 == 0)
             self.set_bit(qr_matrix, i, 6, i % 2 == 0)
-        print("here")
 
     def place_dark_module(self, qr_matrix, version):
         self.set_bit(qr_matrix, (4*version)+9, 8, 1)
@@ -113,7 +159,7 @@ class QRCodeGenerator:
     def set_bit(self, qr_matrix, row, col, value):
         qr_matrix[row, col] = value
 
-    def place_data(self, qr_matrix, final_message, version):
+    def place_data(self, qr_matrix, final_message, version, align_pattern_loc):
         size = qr_matrix.shape[0]
         up = True
         data_index = 0
@@ -127,7 +173,8 @@ class QRCodeGenerator:
                     if left < 0:
                         continue
                     
-                    if self.is_data_module(qr_matrix, vertical, left, version):
+                    if self.is_data_module(qr_matrix, vertical, left, version, align_pattern_loc):
+                        # print(f"Set row {vertical} col {left} as {final_message[data_index]}")
                         self.set_bit(qr_matrix, vertical, left, final_message[data_index])
                         data_index += 1
                         if data_index >= len(final_message):
@@ -135,7 +182,7 @@ class QRCodeGenerator:
             
             up = not up
 
-    def is_data_module(self, qr_matrix, row, col, version):
+    def is_data_module(self, qr_matrix, row, col, version, align_pattern_loc):
         size = qr_matrix.shape[0]
         
         #Check if module overlaps with finder pattern
@@ -151,12 +198,21 @@ class QRCodeGenerator:
             return False
         
         # Check if module is in an alignment pattern
-        if size > 21:  # alignment pattern is only ofr versions >= 2
-            alignment_positions = self.get_alignment_pattern_positions(version)
-            for pos_x in alignment_positions:
-                for pos_y in alignment_positions:
-                    if (pos_x - 2 <= row <= pos_x + 2) and (pos_y - 2 <= col <= pos_y + 2):
-                        return False
+        # if size > 21:  # alignment pattern is only ofr versions >= 2
+            # alignment_positions = self.get_alignment_pattern_positions(version)
+            # alignment_positions = align_pattern_loc
+            # for pos_x in alignment_positions:
+            #     for pos_y in alignment_positions:
+            #         if (pos_x - 2 <= row <= pos_x + 2) and (pos_y - 2 <= col <= pos_y + 2):
+            #             return False
+
+        if size > 21:
+            for pos in align_pattern_loc:
+                x= pos[0]
+                y= pos[1]
+                if (x - 2 <= row <= x + 2) and (y - 2 <= col <= y + 2):
+                    return False
+
         
         # Check if module is the dark module
         if row == 4 * version + 9 and col == 8:
@@ -165,39 +221,31 @@ class QRCodeGenerator:
         #data module
         return True
 
-
     def get_alignment_pattern_positions(self, version):
         if version == 1:
             return []
-        step = 2 if version <= 6 else 4
-        positions = [6]
-        size = 17 + 4 * version
-        pos = size - 7
-        while pos > 6:
-            positions.insert(0, pos)
-            pos -= step
-        return positions
+        return self.alignment_pattern_locations[version]
     
-    def apply_best_mask(self, qr_matrix, version):
+    def apply_best_mask(self, qr_matrix, version, align_pattern_loc):
         best_mask = 0
         best_score = float('inf')
         
         for mask in range(8):
-            masked_matrix = self.apply_mask(qr_matrix, mask, version)
+            masked_matrix = self.apply_mask(qr_matrix, mask, version, align_pattern_loc)
             score = self.evaluate_mask(masked_matrix)
             if score < best_score:
                 best_score = score
                 best_mask = mask
         
-        return self.apply_mask(qr_matrix, best_mask, version), best_mask
+        return self.apply_mask(qr_matrix, best_mask, version, align_pattern_loc), best_mask
     
-    def apply_mask(self, qr_matrix, mask_pattern, version):
+    def apply_mask(self, qr_matrix, mask_pattern, version, align_pattern_loc):
         size = qr_matrix.shape[0]
         masked_matrix = qr_matrix.copy()
         
         for row in range(size):
             for col in range(size):
-                if self.is_data_module(masked_matrix, row, col, version):
+                if self.is_data_module(masked_matrix, row, col, version, align_pattern_loc):
                     if self.mask_function(mask_pattern, row, col):
                         masked_matrix[row, col] = 1 - masked_matrix[row, col]  # Toggle the bit
         
@@ -322,6 +370,20 @@ class QRCodeGenerator:
         
         return f'{final_format:015b}'
     
+    def place_format_information_2(self, qr_matrix, size):
+        for i in range(9):
+            if qr_matrix[8, i] != 1:
+                qr_matrix[8, i] = 2 #placeholder
+        for i in range(9):
+            if qr_matrix[i, 8] != 1:
+                qr_matrix[i, 8]= 2
+        for i in range(8):
+            if qr_matrix[(size-1)-i, 8] != 1:
+                qr_matrix[(size-1)-i, 8]= 2
+        for i in range(8):
+            if qr_matrix[8, (size-1)-i] != 1:   
+                qr_matrix[8, (size-1)-i]= 2
+    
     def place_format_information(self, qr_matrix, format_string):
         size = qr_matrix.shape[0]
         
@@ -366,9 +428,6 @@ class QRCodeGenerator:
             for j in range(3):
                 qr_matrix[i, size - 11 + j] = int(version_info[i * 3 + j])
 
-    def place_dark_module(self, qr_matrix, version):
-        qr_matrix[4 * version + 9, 8] = 1
-
     def add_quiet_zone(self, qr_matrix):
         size = qr_matrix.shape[0]
         new_size = size + 8
@@ -393,6 +452,19 @@ class QRCodeGenerator:
 
         image.save(filename)
         print(f"QR code saved as {filename}")
-  
-q= QRCodeGenerator()
-q.generate("HELLO WORLD")
+
+def main():
+    if len(sys.argv) != 3:
+        print("Usage: python qrcode.py 'text' output_file")
+        print("Example: python qrcode.py 'CODING CHALLENGE COMPLETE' cc.png")
+        sys.exit(1)
+
+    text= sys.argv[1]
+    output_file= sys.argv[2]
+
+    qr= QRCodeGenerator()
+    qr.generate(text, output_file)
+
+    
+if __name__ == "__main__":
+    main()

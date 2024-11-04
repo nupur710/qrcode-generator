@@ -59,5 +59,5 @@ class VersionSelector:
         elif encoding_mode== 'ALPHANUMERIC': version= self.get_versions_info(num_chars, 1)
         elif encoding_mode== 'BYTE': version= self.get_versions_info(num_chars, 2)
         elif encoding_mode== 'KANJI': version= self.get_versions_info(num_chars, 3)    
-        # raise ValueError("Input is too long for available versions")
+        else: raise ValueError("Input is too long for available versions")
         return version
