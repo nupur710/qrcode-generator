@@ -114,9 +114,7 @@ class ErrorCorrection:
         return bitarray(str)
         
     
-    def generate_error_correction_codewords(self, text):
-        encoding_mode= self.encoder.determine_encoding(text)
-        version= self.version.smallest_version(text, encoding_mode)
+    def generate_error_correction_codewords(self, text, version):
         generator_poly = self.construct_generator_polynomial(version)
         message_poly = self.message_polynomial(text)
         #Split message polynomial into blocks

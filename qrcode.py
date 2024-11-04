@@ -59,7 +59,7 @@ class QRCodeGenerator:
         print(f'Encoding mode: {encoding_mode}')
         version= self.version_selector.smallest_version(text, encoding_mode)
         print(f'Version: {version}')
-        final_message= error_correction.generate_error_correction_codewords(text)
+        final_message= error_correction.generate_error_correction_codewords(text, version)
         qr_size= 21 + (version-1) * 4 #arithmetic progression
         qr_matrix = np.zeros((qr_size, qr_size), dtype=int)
         self.place_finder_patterns2(qr_matrix)
