@@ -1,6 +1,6 @@
 QR code generator from scratch written in Python.
 
-This is a solution to Coding Challenges: https://codingchallenges.fyi/challenges/challenge-qr-generator
+This is a solution to Coding Challenges: https://codingchallenges.fyi/challenges/challenge-qr-generator.
 
 To run the application,
 1. Install dependencies
@@ -13,3 +13,6 @@ To run the application,
    
    e.g.,
    python qrcode.py 'CODING CHALLENGE COMPLETE' cc.png
+
+   ![image](https://github.com/user-attachments/assets/52fbb5d4-cbf5-4b44-96d7-844c7fdcb2b2)
+
